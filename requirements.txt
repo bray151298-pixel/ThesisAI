@@ -1,4 +1,7 @@
-streamlit>=1.36
-requests>=2.31
-python-dotenv>=1.0
-python-docx>=1.1
+# Versiones fijadas y estables para Streamlit Cloud.
+# streamlit 1.41.1 es estable y evita el bug de gzip/starlette de las
+# versiones nuevas sobre Python 3.14.
+streamlit==1.41.1
+requests>=2.31,<3
+python-dotenv>=1.0,<2
+python-docx>=1.1,<2
