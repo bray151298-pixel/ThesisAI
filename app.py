@@ -64,6 +64,20 @@ with st.sidebar:
             "(Gemini o Groq) o instala Ollama."
         )
 
+    # --- Diagnostico temporal: ver si las claves llegan (solo si/no) ---
+    with st.expander("🔧 Diagnóstico de claves"):
+        import os as _os
+        try:
+            _secret_keys = list(st.secrets.keys())
+        except Exception:
+            _secret_keys = []
+        st.caption(f"Claves en Secrets (nube): {len(_secret_keys)}")
+        for _k in ["GEMINI_API_KEY", "GROQ_API_KEY", "CORE_API_KEY", "APP_PASSWORD"]:
+            _in_env = bool((_os.getenv(_k) or "").strip())
+            _in_sec = _k in _secret_keys
+            st.write(f"- `{_k}`: env={_in_env} · secrets={_in_sec}")
+        st.caption(f"gemini_api_key cargada: {bool(settings.gemini_api_key)}")
+
     st.divider()
     st.metric("Fuentes seleccionadas", len(st.session_state.selected))
     st.metric("Secciones redactadas", len(st.session_state.sections))
