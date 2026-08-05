@@ -12,7 +12,14 @@ from thesisai.export import build_docx
 from thesisai.providers import LLMRouter, LLMError, available_providers
 from thesisai.search import search_articles
 from thesisai.search import core_api
-from thesisai.writing import THESIS_SECTIONS, draft_section
+from thesisai.writing import (
+    THESIS_SECTIONS,
+    draft_section,
+    THESIS_PHASES,
+    FULL_THESIS_SECTIONS,
+    FULL_ORDER,
+    draft_full_section,
+)
 
 st.set_page_config(page_title="ThesisAI", page_icon="📚", layout="wide")
 
@@ -87,8 +94,8 @@ with st.sidebar:
             st.rerun()
 
 
-tab_search, tab_write, tab_export = st.tabs(
-    ["🔎 Buscar articulos", "✍️ Redactar", "📄 Exportar"]
+tab_search, tab_write, tab_full, tab_export = st.tabs(
+    ["🔎 Buscar articulos", "✍️ Redactar", "🎓 Tesis completa", "📄 Exportar"]
 )
 
 
@@ -283,6 +290,86 @@ with tab_write:
             st.caption("⚠️ Es un borrador asistido: revisa, verifica las citas y reescribe con tus palabras.")
 
 
+# ---------------------------------------------------------------- Tesis completa
+with tab_full:
+    st.subheader("🎓 Generar tesis modelo completa")
+    st.caption(
+        "Genera TODAS las secciones de una tesis siguiendo las fases académicas. "
+        "Las partes de campo traen datos de **ejemplo** (etiquetados) y notas de "
+        "**lo que tú debes hacer**. Es un modelo para completar, no para entregar tal cual."
+    )
+
+    # Mapa visual de fases
+    with st.expander("🗺️ Fases de la tesis (así trabaja el bot)", expanded=True):
+        _cols = st.columns(4)
+        for _i, _ph in enumerate(THESIS_PHASES):
+            _cols[_i % 4].markdown(f"**{_i + 1}.** {_ph}")
+
+    selected_full = list(st.session_state.selected.values())
+    if not selected_full:
+        st.info(
+            "Primero busca y selecciona algunos artículos en **🔎 Buscar** "
+            "(4-6 fuentes bastan). Se usarán para el marco teórico y las citas."
+        )
+    else:
+        st.success(f"{len(selected_full)} fuentes seleccionadas para citar.")
+
+    topic_full = st.text_input(
+        "Título / tema de tu tesis",
+        key="topic",
+        help="Ejemplo: Calidad del servicio educativo y satisfacción de los "
+        "estudiantes en CETPROs de Andahuaylas, 2026.",
+    )
+
+    st.warning(
+        "⚠️ **Uso responsable:** los datos estadísticos que genere son EJEMPLOS "
+        "ilustrativos. Debes reemplazarlos con los resultados reales de tu trabajo "
+        "de campo. Entregar datos inventados como reales es deshonestidad académica."
+    )
+
+    _n_sec = len(FULL_THESIS_SECTIONS)
+    if st.button(f"🚀 Generar tesis modelo completa ({_n_sec} secciones)", type="primary"):
+        if not LLMRouter().has_any():
+            st.error("No hay IA configurada.")
+        elif not topic_full.strip():
+            st.warning("Escribe el título/tema de tu tesis.")
+        elif not selected_full:
+            st.warning("Selecciona al menos una fuente en la pestaña Buscar.")
+        else:
+            progress = st.progress(0.0, text="Preparando...")
+            done, errors = 0, []
+            for idx, (sec_name, sec_kind) in enumerate(FULL_THESIS_SECTIONS):
+                progress.progress(
+                    idx / _n_sec, text=f"Redactando: {sec_name} ({idx + 1}/{_n_sec})"
+                )
+                try:
+                    text, _used = draft_full_section(
+                        topic_full, sec_name, sec_kind, selected_full
+                    )
+                    st.session_state.sections[sec_name] = text
+                    done += 1
+                except LLMError as e:
+                    errors.append(f"{sec_name}: {e}")
+            progress.progress(1.0, text="¡Listo!")
+            if done:
+                st.success(
+                    f"✅ Se generaron {done}/{_n_sec} secciones. "
+                    "Revísalas en **✍️ Redactar** y descárgalas en **📄 Exportar**."
+                )
+            if errors:
+                st.error(
+                    "Algunas secciones fallaron (probable límite de la IA gratis; "
+                    "espera un momento y reintenta):\n\n- " + "\n- ".join(errors[:5])
+                )
+
+    if st.session_state.sections:
+        st.divider()
+        st.caption("Secciones ya generadas (edítalas en ✍️ Redactar):")
+        for _name in FULL_ORDER:
+            if _name in st.session_state.sections:
+                st.markdown(f"✅ {_name}")
+
+
 # ---------------------------------------------------------------- Exportar
 with tab_export:
     st.subheader("Exportar tesis a Word")
@@ -303,8 +390,9 @@ with tab_export:
             for r in refs:
                 st.markdown(f"- {r}")
 
-        # Ordena las secciones segun el orden canonico de una tesis
-        ordered = [(n, st.session_state.sections[n]) for n in THESIS_SECTIONS if n in st.session_state.sections]
+        # Ordena las secciones segun el orden canonico completo de una tesis
+        _canonical = FULL_ORDER + [n for n in st.session_state.sections if n not in FULL_ORDER]
+        ordered = [(n, st.session_state.sections[n]) for n in _canonical if n in st.session_state.sections]
 
         docx_bytes = build_docx(title, author_name, ordered, refs)
         st.download_button(
