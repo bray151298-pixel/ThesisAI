@@ -16,9 +16,10 @@ from thesisai.writing import (
     THESIS_SECTIONS,
     draft_section,
     THESIS_PHASES,
-    FULL_THESIS_SECTIONS,
-    FULL_ORDER,
-    draft_full_section,
+    STRUCTURE_LABELS,
+    chapters_for,
+    order_for,
+    draft_chapter,
 )
 
 st.set_page_config(page_title="ThesisAI", page_icon="📚", layout="wide")
@@ -321,14 +322,27 @@ with tab_full:
         "estudiantes en CETPROs de Andahuaylas, 2026.",
     )
 
+    structure = st.selectbox(
+        "Estructura (formato UNAJMA)",
+        list(STRUCTURE_LABELS.keys()),
+        format_func=lambda k: STRUCTURE_LABELS[k],
+        help="**Proyecto**: Cap. I–IV como el Anexo 02 (propuesta, sin resultados). "
+        "**Tesis final**: agrega Resultados y Conclusiones con datos de ejemplo.",
+    )
+    _chapters = chapters_for(structure)
+
+    with st.expander("📑 Capítulos que se generarán"):
+        for _c in _chapters:
+            st.markdown(f"- **{_c[0]}**")
+
     st.warning(
         "⚠️ **Uso responsable:** los datos estadísticos que genere son EJEMPLOS "
         "ilustrativos. Debes reemplazarlos con los resultados reales de tu trabajo "
         "de campo. Entregar datos inventados como reales es deshonestidad académica."
     )
 
-    _n_sec = len(FULL_THESIS_SECTIONS)
-    if st.button(f"🚀 Generar tesis modelo completa ({_n_sec} secciones)", type="primary"):
+    _n_sec = len(_chapters)
+    if st.button(f"🚀 Generar ({_n_sec} capítulos, formato UNAJMA)", type="primary"):
         if not LLMRouter().has_any():
             st.error("No hay IA configurada.")
         elif not topic_full.strip():
@@ -338,36 +352,48 @@ with tab_full:
         else:
             progress = st.progress(0.0, text="Preparando...")
             done, errors = 0, []
-            for idx, (sec_name, sec_kind) in enumerate(FULL_THESIS_SECTIONS):
+            for idx, (cap_title, cap_kind, cap_guide) in enumerate(_chapters):
                 progress.progress(
-                    idx / _n_sec, text=f"Redactando: {sec_name} ({idx + 1}/{_n_sec})"
+                    idx / _n_sec, text=f"Redactando: {cap_title} ({idx + 1}/{_n_sec})"
                 )
                 try:
-                    text, _used = draft_full_section(
-                        topic_full, sec_name, sec_kind, selected_full
+                    text, _used = draft_chapter(
+                        topic_full, cap_title, cap_kind, cap_guide, selected_full
                     )
-                    st.session_state.sections[sec_name] = text
+                    st.session_state.sections[cap_title] = text
                     done += 1
                 except LLMError as e:
-                    errors.append(f"{sec_name}: {e}")
+                    errors.append(f"{cap_title}: {e}")
+            # Guarda el orden usado (para exportar en el orden correcto).
+            st.session_state["section_order"] = order_for(structure)
             progress.progress(1.0, text="¡Listo!")
             if done:
                 st.success(
-                    f"✅ Se generaron {done}/{_n_sec} secciones. "
-                    "Revísalas en **✍️ Redactar** y descárgalas en **📄 Exportar**."
+                    f"✅ Se generaron {done}/{_n_sec} capítulos. "
+                    "Revísalos en **✍️ Redactar** y descárgalos en **📄 Exportar**."
                 )
             if errors:
                 st.error(
-                    "Algunas secciones fallaron (probable límite de la IA gratis; "
+                    "Algunos capítulos fallaron (probable límite de la IA gratis; "
                     "espera un momento y reintenta):\n\n- " + "\n- ".join(errors[:5])
                 )
 
     if st.session_state.sections:
         st.divider()
-        st.caption("Secciones ya generadas (edítalas en ✍️ Redactar):")
-        for _name in FULL_ORDER:
+        st.caption("Capítulos generados (haz clic para revisar y editar):")
+        _order = st.session_state.get("section_order", list(st.session_state.sections))
+        for _name in _order:
             if _name in st.session_state.sections:
-                st.markdown(f"✅ {_name}")
+                with st.expander(f"✅ {_name}"):
+                    _edited = st.text_area(
+                        _name, value=st.session_state.sections[_name],
+                        height=300, key=f"edit_full_{_name}", label_visibility="collapsed",
+                    )
+                    st.session_state.sections[_name] = _edited
+        st.caption(
+            "⚠️ Es un borrador modelo: revisa, verifica las citas, reemplaza los datos "
+            "de ejemplo por los tuyos y adáptalo a tu caso real (CEPRO)."
+        )
 
 
 # ---------------------------------------------------------------- Exportar
@@ -390,8 +416,9 @@ with tab_export:
             for r in refs:
                 st.markdown(f"- {r}")
 
-        # Ordena las secciones segun el orden canonico completo de una tesis
-        _canonical = FULL_ORDER + [n for n in st.session_state.sections if n not in FULL_ORDER]
+        # Ordena las secciones: primero el orden guardado (UNAJMA), luego el resto.
+        _saved_order = st.session_state.get("section_order", [])
+        _canonical = _saved_order + [n for n in st.session_state.sections if n not in _saved_order]
         ordered = [(n, st.session_state.sections[n]) for n in _canonical if n in st.session_state.sections]
 
         docx_bytes = build_docx(title, author_name, ordered, refs)
