@@ -52,17 +52,25 @@ def _norm(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
-# ---------------------------------------------------------------- runs con negrita
+# ---------------------------------------------------------------- runs con negrita/cursiva
+# Negrita **texto**  o  cursiva *texto* (el * de cursiva no puede ir pegado a un espacio,
+# para no confundir con multiplicaciones como "N * Z").
+_INLINE_RE = re.compile(r"(\*\*[^*]+?\*\*|\*(?=\S)[^*\n]+?(?<=\S)\*)")
+
+
 def _add_runs(paragraph, text: str) -> None:
     text = _clean_inline(text)
     # cada linea (separada por <br> convertidos) se agrega con salto de linea real
     for li, line in enumerate(text.split("\n")):
         if li > 0:
             paragraph.add_run().add_break()
-        for part in re.split(r"(\*\*[^*]+\*\*)", line):
+        for part in _INLINE_RE.split(line):
             if part.startswith("**") and part.endswith("**") and len(part) > 4:
                 run = paragraph.add_run(part[2:-2])
                 run.bold = True
+            elif part.startswith("*") and part.endswith("*") and len(part) > 2:
+                run = paragraph.add_run(part[1:-1])
+                run.italic = True
             elif part:
                 paragraph.add_run(part)
 
@@ -179,10 +187,14 @@ def _apply_unajma_format(doc: Document) -> None:
         section.top_margin = Cm(4)
         section.right_margin = Cm(2.5)
         section.bottom_margin = Cm(2.5)
-        footer = section.footer
+        # La portada (primera pagina) NO se enumera (Anexo 08).
+        section.different_first_page_header_footer = True
+        footer = section.footer  # footer de las paginas 2 en adelante
         fp = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
         fp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         _add_page_number(fp)
+        # Deja vacio el footer de la primera pagina (sin numero).
+        _ = section.first_page_footer
 
     normal = doc.styles["Normal"]
     normal.font.name = "Times New Roman"
@@ -232,7 +244,8 @@ def build_docx(
         h = doc.add_heading("Referencias bibliográficas", level=1)
         _style_heading(h)
         for ref in references:
-            p = doc.add_paragraph(ref)
+            p = doc.add_paragraph()
+            _add_runs(p, ref)  # convierte *cursiva* y **negrita** a formato real
             p.paragraph_format.left_indent = Cm(1.25)
             p.paragraph_format.first_line_indent = Cm(-1.25)
 
