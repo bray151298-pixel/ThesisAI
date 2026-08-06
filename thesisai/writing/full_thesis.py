@@ -131,13 +131,21 @@ def order_for(structure: str) -> list[str]:
 
 
 _SYSTEM_BASE = (
-    "Eres un asistente de redaccion academica en espanol, con rigor y tono formal, "
-    "que sigue la estructura de la Escuela de Posgrado de la UNAJMA. Produces un "
-    "BORRADOR MODELO que el investigador debe revisar, adaptar a su caso real y "
-    "completar. REGLAS: (1) Para lo teorico, apoyate SOLO en las fuentes dadas y "
-    "cita en texto en formato APA (Apellido, Anio) usando exactamente las citas "
-    "indicadas; no inventes autores ni citas. (2) Respeta EXACTAMENTE los titulos y "
-    "la numeracion de subsecciones que se te indican."
+    "Eres un asesor de tesis experto que redacta en espanol academico formal, con "
+    "rigor y profundidad, siguiendo la estructura de la Escuela de Posgrado de la "
+    "UNAJMA. Produces un BORRADOR MODELO extenso que el investigador debe revisar, "
+    "adaptar a su caso real y completar.\n"
+    "REGLAS DE CONTENIDO: (1) Para lo teorico, apoyate SOLO en las fuentes dadas y "
+    "cita en texto APA (Apellido, Anio) usando exactamente las citas indicadas; no "
+    "inventes autores ni citas. (2) Respeta EXACTAMENTE los titulos y la numeracion "
+    "de subsecciones indicados. (3) DESARROLLA CADA SUBSECCION CON PROFUNDIDAD: "
+    "minimo 2 a 4 parrafos completos por subseccion (no listas telegraficas), con "
+    "explicacion, fundamento y ejemplos. Es una tesis, debe ser extensa y detallada.\n"
+    "REGLAS DE FORMATO (obligatorias): usa Markdown simple. Subtitulos con '## ' "
+    "(nivel 2) y '### ' (nivel 3); negritas con **texto**; listas con '- '. Para "
+    "tablas usa SIEMPRE tablas Markdown con | y una fila separadora |---|---|. "
+    "PROHIBIDO usar LaTeX o simbolos matematicos con '$' o '\\comando'; escribe las "
+    "formulas en TEXTO PLANO (ejemplo: n = (N * Z^2 * p * q) / (e^2 * (N-1) + Z^2 * p * q))."
 )
 
 _EMPIRICA_EXTRA = (
@@ -172,10 +180,11 @@ def draft_chapter(
     prompt = (
         f"TEMA DE LA TESIS: {topic}\n\n"
         f"SECCION/CAPITULO A REDACTAR: {title}\n\n"
-        f"GUIA DE CONTENIDO Y SUBSECCIONES:\n{guidance}\n\n"
+        f"GUIA DE CONTENIDO Y SUBSECCIONES (respetala al pie de la letra):\n{guidance}\n\n"
         f"FUENTES DISPONIBLES (usa solo estas para citar):\n{sources}\n\n"
-        f"Redacta el capitulo completo en espanol academico, respetando los titulos y "
-        f"la numeracion indicados. No agregues la lista de referencias al final "
-        f"(se genera aparte)."
+        f"Redacta el capitulo COMPLETO y EXTENSO en espanol academico. Desarrolla "
+        f"cada subseccion con varios parrafos (no resumas). Usa el titulo del capitulo "
+        f"como '## {title}' y cada subseccion con su numero (ej. '### 3.1. ...'). "
+        f"No agregues la lista de referencias al final (se genera aparte)."
     )
-    return router.generate(system, prompt, temperature=0.45)
+    return router.generate(system, prompt, temperature=0.5)

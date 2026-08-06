@@ -22,7 +22,7 @@ class GroqProvider(LLMProvider):
         payload = {
             "model": self.model,
             "temperature": temperature,
-            "max_tokens": 4096,
+            "max_tokens": 8000,
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},

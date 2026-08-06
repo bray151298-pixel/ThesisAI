@@ -23,7 +23,7 @@ class GeminiProvider(LLMProvider):
         payload = {
             "system_instruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": 4096},
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": 8192},
         }
         resp = requests.post(
             url,
