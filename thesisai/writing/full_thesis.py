@@ -145,7 +145,10 @@ _SYSTEM_BASE = (
     "(nivel 2) y '### ' (nivel 3); negritas con **texto**; listas con '- '. Para "
     "tablas usa SIEMPRE tablas Markdown con | y una fila separadora |---|---|. "
     "PROHIBIDO usar LaTeX o simbolos matematicos con '$' o '\\comando'; escribe las "
-    "formulas en TEXTO PLANO (ejemplo: n = (N * Z^2 * p * q) / (e^2 * (N-1) + Z^2 * p * q))."
+    "formulas en TEXTO PLANO (ejemplo: n = (N * Z^2 * p * q) / (e^2 * (N-1) + Z^2 * p * q)). "
+    "PROHIBIDO usar etiquetas HTML (nada de <br>, <b>, <p>, etc.). En las tablas manten "
+    "cada celda breve; si una celda necesita varias ideas, usa frases cortas separadas "
+    "por punto y coma, NUNCA <br>."
 )
 
 _EMPIRICA_EXTRA = (

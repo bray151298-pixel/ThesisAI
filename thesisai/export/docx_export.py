@@ -39,6 +39,12 @@ def _clean_inline(text: str) -> str:
     text = text.replace("`", "")
     # quita llaves sueltas de LaTeX pero conserva las de texto normal raras
     text = re.sub(r"[{}]", "", text)
+    # HTML: <br> -> salto de linea; quita otras etiquetas comunes (sin tocar < > matematicos)
+    text = re.sub(r"<\s*br\s*/?\s*>", "\n", text, flags=re.I)
+    text = re.sub(
+        r"</?\s*(b|i|u|p|strong|em|span|div|ul|ol|li|table|tr|td|th|h[1-6])\b[^>]*>",
+        "", text, flags=re.I,
+    )
     return text.strip()
 
 
@@ -49,12 +55,16 @@ def _norm(s: str) -> str:
 # ---------------------------------------------------------------- runs con negrita
 def _add_runs(paragraph, text: str) -> None:
     text = _clean_inline(text)
-    for part in re.split(r"(\*\*[^*]+\*\*)", text):
-        if part.startswith("**") and part.endswith("**") and len(part) > 4:
-            run = paragraph.add_run(part[2:-2])
-            run.bold = True
-        elif part:
-            paragraph.add_run(part)
+    # cada linea (separada por <br> convertidos) se agrega con salto de linea real
+    for li, line in enumerate(text.split("\n")):
+        if li > 0:
+            paragraph.add_run().add_break()
+        for part in re.split(r"(\*\*[^*]+\*\*)", line):
+            if part.startswith("**") and part.endswith("**") and len(part) > 4:
+                run = paragraph.add_run(part[2:-2])
+                run.bold = True
+            elif part:
+                paragraph.add_run(part)
 
 
 def _style_heading(heading) -> None:
@@ -79,6 +89,8 @@ def _add_table(doc: Document, rows_md: list[str]) -> None:
     ncols = max(len(r) for r in rows)
     table = doc.add_table(rows=0, cols=ncols)
     table.style = "Table Grid"
+    table.autofit = True
+    table.allow_autofit = True
     for ri, cells in enumerate(rows):
         cells = cells + [""] * (ncols - len(cells))
         wrow = table.add_row().cells
