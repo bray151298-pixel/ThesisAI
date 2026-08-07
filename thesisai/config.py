@@ -40,6 +40,10 @@ class Settings:
     groq_api_key: str = _get("GROQ_API_KEY")
     groq_model: str = _get("GROQ_MODEL", "llama-3.3-70b-versatile")
 
+    # OpenRouter (modelos open source gratis: Llama, DeepSeek, Qwen).
+    openrouter_api_key: str = _get("OPENROUTER_API_KEY")
+    openrouter_model: str = _get("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+
     ollama_model: str = _get("OLLAMA_MODEL", "llama3.1")
     ollama_host: str = _get("OLLAMA_HOST", "http://localhost:11434")
 

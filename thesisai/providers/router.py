@@ -11,6 +11,7 @@ from ..config import settings
 from .base import LLMProvider
 from .gemini import GeminiProvider
 from .groq import GroqProvider
+from .openrouter import OpenRouterProvider
 from .ollama import OllamaProvider
 
 
@@ -34,6 +35,7 @@ def _all_providers() -> list[LLMProvider]:
     return [
         GeminiProvider(settings.gemini_api_key, settings.gemini_model),
         GroqProvider(settings.groq_api_key, settings.groq_model),
+        OpenRouterProvider(settings.openrouter_api_key, settings.openrouter_model),
         OllamaProvider(settings.ollama_model, settings.ollama_host),
     ]
 

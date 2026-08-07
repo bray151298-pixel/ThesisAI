@@ -80,7 +80,7 @@ with st.sidebar:
         except Exception:
             _secret_keys = []
         st.caption(f"Claves en Secrets (nube): {len(_secret_keys)}")
-        for _k in ["GEMINI_API_KEY", "GROQ_API_KEY", "CORE_API_KEY", "APP_PASSWORD"]:
+        for _k in ["GEMINI_API_KEY", "GROQ_API_KEY", "OPENROUTER_API_KEY", "CORE_API_KEY", "APP_PASSWORD"]:
             _in_env = bool((_os.getenv(_k) or "").strip())
             _in_sec = _k in _secret_keys
             st.write(f"- `{_k}`: env={_in_env} · secrets={_in_sec}")
