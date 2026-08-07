@@ -5,6 +5,8 @@ Asi, si una gratuita se queda sin cupo, el bot continua con otra.
 """
 from __future__ import annotations
 
+import time
+
 from ..config import settings
 from .base import LLMProvider
 from .gemini import GeminiProvider
@@ -14,6 +16,18 @@ from .ollama import OllamaProvider
 
 class LLMError(RuntimeError):
     """Ningun proveedor de IA pudo responder."""
+
+
+# Errores temporales que conviene reintentar (sobrecarga/limite momentaneo).
+_TRANSIENT = (
+    "503", "429", "overload", "unavailable", "timeout", "timed out",
+    "temporar", "exhausted", "rate limit", "try again",
+)
+
+
+def _is_transient(msg: str) -> bool:
+    m = msg.lower()
+    return any(t in m for t in _TRANSIENT)
 
 
 def _all_providers() -> list[LLMProvider]:
@@ -44,12 +58,19 @@ class LLMRouter:
         for provider in self.providers:
             if not provider.is_available():
                 continue
-            try:
-                text = provider.generate(system, prompt, temperature)
-                if text:
-                    return text, provider.name
-            except Exception as exc:  # noqa: BLE001 - probamos el siguiente
-                errors.append(f"{provider.name}: {exc}")
+            for attempt in range(3):  # hasta 3 intentos por proveedor
+                try:
+                    text = provider.generate(system, prompt, temperature)
+                    if text:
+                        return text, provider.name
+                    break  # respuesta vacia: pasa al siguiente proveedor
+                except Exception as exc:  # noqa: BLE001
+                    msg = str(exc)
+                    if _is_transient(msg) and attempt < 2:
+                        time.sleep(5 * (attempt + 1))  # espera 5s, luego 10s
+                        continue
+                    errors.append(f"{provider.name}: {exc}")
+                    break
         if not errors:
             raise LLMError(
                 "No hay ninguna IA configurada. Pon una clave gratuita en el archivo .env "
